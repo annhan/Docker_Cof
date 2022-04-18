@@ -1,5 +1,5 @@
 ARG PLATFORM=amd64
-FROM ${PLATFORM}/debian:stable-20190812-slim
+FROM ${PLATFORM}/debian:stable
 LABEL maintainer "annhandt09  <annhandt09@gmail.com>"
 
 ENV DEBIAN_FRONTEND noninteractive
@@ -48,34 +48,52 @@ RUN apt-get install -y \
   python /tmp/get-pip.py && \
   pip install --upgrade pip
 
+# needed at runtime
+RUN apt-get install python-serial mesa-utils python-gtksourceview2 python-vte python-xlib -y
+RUN apt-get install python-serial mesa-utils python-gnome2 python-glade2 python-imaging python-imaging-tk python-gtksourceview2 python-vte python-xlib -y
+RUN apt-get install tclreadline python-configobj python-gtkglext1 -y
+RUN apt-get install gir1.2-gst-plugins-base-1.0 gir1.2-gstreamer-1.0 gstreamer1.0-plugins-base  libcap2-bin libcdparanoia0 libgstreamer-plugins-base1.0-0 libgstreamer1.0-0 libopus0 liborc-0.4-0 libpam-cap libtheora0 libvisual-0.4-0 libvorbisenc2 python-gi python-gst-1.0 -y
+
+
+
 WORKDIR /opt
 
 # Add modules/plugins
 
 # Build deb and install LinuxCNC
-RUN git clone https://github.com/mWorkVN/linuxcnc && \
-  git checkout mwork_camera && \
-  cd linuxcnc/debian && \
-  ./configure uspace && \
-  cd .. && \
-  dpkg-buildpackage -b -uc && \
-  sudo dpkg -i ../linuxcnc-uspace_2.9.0~pre0_amd64.deb
+#RUN git clone https://github.com/mWorkVN/linuxcnc && \
+#  git checkout mwork_camera && \
+#  cd linuxcnc/debian && \
+#  ./configure uspace && \
+#  cd .. && \
+#  dpkg-buildpackage -b -uc && \
+#  sudo dpkg -i ../linuxcnc-uspace_2.9.0~pre0_amd64.deb
 # Build PAP LinuxCNC  
-RUN git clone https://github.com/LinuxCNC/linuxcnc.git && \
+
+RUN git clone https://github.com/mWorkVN/linuxcnc && \
   cd linuxcnc/debian && \
+  git checkout mwork_camera && \
   ./configure uspace && \
   cd ../src && \
   ./autogen.sh && \
   ./configure --with-realtime=uspace && \
-  make
-  
-cd linuxcnc-dev/debian
-./configure uspace
-cd ..
+  make -j4 && make setuid
 
-note that it needs to run from the linuxcnc-dev directory, not from linuxcnc-dev/debia):
+# Add Run time dependencies
+RUN apt-get install -y \ 
+    python3-pyqt5 \ 
+    python3-pyqt5-dbg \
+    python3-pyqt5.qtsvg \
+    python3-pyqt5.qtopengl \ 
+    python3-gi-cairo \
+    python3-pyqt5.qsci \
+    libcairo2 \
+    libcairo2-dev \
+    gir1.2-pango-1.0 \ 
+    python3-xlib 
 
-dpkg-buildpackage -b -uc
+
+
 # Clean up APT when done.
 RUN apt-get purge -y \
       git \
